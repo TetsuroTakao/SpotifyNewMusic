@@ -1,0 +1,172 @@
+﻿@using SpotifyNewMusic.Models
+@using Microsoft.AspNetCore.Mvc.Localization
+
+@inject IViewLocalizer Localizer
+
+@{
+    ViewData["PageTitle"] = "Home";
+    List<MessageModel> message = ViewBag.Messages ?? new List<MessageModel>();
+    List<Artist> artists = ViewBag.Artists ?? new List<Artist>();
+    List<Album> albums = ViewBag.Albums ?? new List<Album>();
+    var bodyBackground = albums.FirstOrDefault();
+    var bodyBackgroundStyle = string.Empty;
+    if (bodyBackground != null)
+    {
+        if (albums.FirstOrDefault().images.Count() > 0)
+        {
+            foreach (var i in albums.FirstOrDefault().images)
+            {
+                if (!string.IsNullOrEmpty(i.url))
+                {
+                    bodyBackgroundStyle = "background-image: url(\"" + i.url + "\");background-color : rgba(255,255,255,0.9);background-blend-mode:lighten;";
+                    break;
+                }
+            }
+        }
+    }
+    var albumsCounter = 0;
+    var rowContents = string.Empty;
+    var menuBackgraund = "0.9";
+    var contentsScrollBar = "auto";
+    if (artists.Count() == 0 && albums.Count() == 0)
+    {
+        menuBackgraund = "0.3";
+    }
+    else
+    {
+        contentsScrollBar = "scroll";
+    }
+}
+@section scripts{
+    <script>
+        window.addEventListener("load", function () {
+            var contentsHeight = $(window).innerHeight() - $("header").first().css("height").replace(/px/, "") - $("footer").first().css("height").replace(/px/, "") - $("header").children().first().css("margin-bottom").replace(/px/, "") - 20;
+            $("#contextMenuLogIn").css("background-color", "rgba(200, 200, 255, @menuBackgraund)");
+            $(".text-center").first().css("height", (contentsHeight).toString() + "px");
+            $(".text-center").first().css("overflow-y", "@contentsScrollBar");
+        });
+    </script>
+
+}
+
+<div class="text-center" style="@bodyBackgroundStyle">
+    <h1 class="display-4">Welcome</h1>
+    @foreach (var m in message)
+    {
+        if (m.Type.HasFlag(MessageType.Display))
+        {
+            var messageText = @m.EventMessage;
+            if (!m.Type.HasFlag(MessageType.ExternalLink) && !m.Type.HasFlag(MessageType.Link))
+            {
+                <p>@messageText</p>
+            }
+            if (m.Type.HasFlag(MessageType.ExternalLink))
+            {
+                <p><a href="@(m.EventSource)" target="_blank">@messageText</a></p>
+            }
+            if (m.Type.HasFlag(MessageType.Link))
+            {
+                <p><a href="@(m.EventSource)">@messageText</a></p>
+            }
+        }
+    }
+    @foreach (var a in albums)
+    {
+        rowContents += "<div class=\"col-md-2\" style=\"border-bottom: ridge thick rgba(0,128,255,0.5);\">";
+        #region Image creating
+        var image = a.images.FirstOrDefault();
+        var imagOut = false;
+        if (image != null)
+        {
+            var imageWidth = 0;
+            var imageHeight = 0;
+            if (image.width.HasValue)
+            {
+                imageWidth = image.width.Value;
+                if (image.height.HasValue)
+                {
+                    imageHeight = image.height.Value;
+                    if (imageWidth > 0 && imageHeight > 0)
+                    {
+                        rowContents += "<img src=\"" + image.url + "\" width=\"200\" height=\"" + (imageHeight * 200 / imageWidth) + "\" />";
+                        imagOut = true;
+                    }
+                }
+            }
+        }
+        if (!imagOut)
+        {
+            rowContents += "<span>画像なし</span>";
+        }
+        rowContents += "</div>";
+        #endregion
+        #region Title creating
+        var title = a.name;
+        if (title.Length > 20)
+        {
+            if (title.Contains('('))
+            {
+                title = title.Split('(').FirstOrDefault() + "<br />(" + title.Split('(').LastOrDefault();
+            }
+            else
+            {
+                title = title.Replace(title.Split(' ').LastOrDefault(), "") + "<br />" + title.Split(' ').LastOrDefault();
+            }
+        }
+        #endregion
+        var release = a.release_date;
+        var releaseDate = string.Empty;
+        rowContents += "<div class=\"col-md-4\" style=\"border-bottom:ridge thick #ffffff;\">";
+        rowContents += "  <div style=\"display:table;width:100%;height:100%;background-color:rgba(255,0,0,0.1);border:thin solid rgba(255,0,0,0.5);border-radius:1rem;\">";
+        rowContents += "    <div style=\"display:table-row\"><div style=\"display:table-cell;text-align:right;font-weight:bold;\">" + Localizer["Title"].Value + "</div><div style=\"display:table-cell;font-family: 'Cormorant Garamond', serif;font-size:1.6rem;\">" + title + "</div></div>";
+        rowContents += "    <div style=\"display:table-row\"><div style=\"display:table-cell;text-align:right;font-weight:bold;\">" + Localizer["Type"].Value + "</div><div style=\"display:table-cell;font-family: 'Cormorant Garamond', serif;font-size:1.6rem;\">" + a.album_type + "</div></div>";
+        rowContents += "    <div style=\"display:table-row\"><div style=\"display:table-cell;text-align:right;font-weight:bold;\">" + Localizer["Artist"].Value + "</div><div style=\"display:table-cell;font-family: 'Cormorant Garamond', serif;font-size:1.6rem;\">" + a.artists.FirstOrDefault().name + "</div></div>";
+        rowContents += "    <div style=\"display:table-row\">";
+        rowContents += "      <div style=\"display:table-cell;text-align:right;font-weight:bold;\">" + Localizer["Release date"].Value + "</div>";
+        if (release != DateTime.MinValue)
+        {
+            releaseDate = release.ToLocalTime().ToLongDateString();
+            rowContents += "      <div style=\"display:table-cell;font-family: 'Cormorant Garamond', serif;font-size:1.6rem;\">";
+            rowContents += "        <span>" + releaseDate + "</span>";
+            rowContents += "      </div>";
+        }
+        else
+        {
+            rowContents += "      <div style=\"display:table-cell;font-family: 'Cormorant Garamond', serif;font-size:1.6rem;\">";
+            rowContents += "        <span>-</span>";
+            rowContents += "      </div>";
+        }
+        rowContents += "    </div>";
+        rowContents += "  </div>";
+        rowContents += "</div>";
+        if ((albumsCounter % 2) == 1)
+        {
+            <div class="row" name="albumsContentsRows" style="display:inline-flex;width:98%;padding-top:5px;background-color:rgba(0,0,255,0.1);">
+                @Html.Raw(rowContents)
+            </div>
+            rowContents = string.Empty;
+        }
+        albumsCounter++;
+    }
+    @foreach (var artist in artists)
+    {
+        <div class="row">
+            <div class="col-md-4">
+                @{
+                    var image = artist.images.FirstOrDefault();
+                    if (image == null)
+                    {
+                        <span>画像なし</span>
+                    }
+                    else
+                    {
+                        <img src="@artist.images.FirstOrDefault().url" width="@(artist.images.FirstOrDefault().width + "px")" height="@(artist.images.FirstOrDefault().height + "px")" />
+                    }
+                }
+            </div>
+            <div class="col-md-2">@artist.name</div>
+            <div class="col-md-3">@(string.Join(",", artist.genres))</div>
+            <div class="col-md-3"><a href="@artist.uri">@artist.uri</a></div>
+        </div>
+    }
+</div>
